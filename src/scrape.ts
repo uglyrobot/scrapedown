@@ -5,9 +5,11 @@ import TurndownService from "./turndown";
 export const scrape = async ({
   url,
   markdown,
+  extract,
 }: {
   url: string;
   markdown: boolean;
+  extract: boolean;
 }) => {
   const response = await fetch(url, {
     headers: {
@@ -15,34 +17,51 @@ export const scrape = async ({
     },
   });
   const html = await response.text();
-  console.log("html", html);
-  const article = extract(html);
+  //console.log("html", html);
+  const article = extractContent(html);
 
-  if (article == null) {
-    return null;
-  }
+  if (extract) {
 
-  if (markdown) {
-    const textContent = convertToMarkdown(article.content);
-    return { ...article, textContent };
+    if (article == null) {
+      return null;
+    }
+
+    if (markdown) {
+      const doc = parseHTML(article.content);
+      const textContent = convertToMarkdown(doc.window.document);
+      return { ...article, textContent };
+    } else {
+      const content = cleanString(article.content);
+      const textContent = cleanString(article.textContent);
+
+      return { ...article, content, textContent };
+    }
   } else {
-    const content = cleanString(article.content);
-    const textContent = cleanString(article.textContent);
 
-    return { ...article, content, textContent };
+    if (markdown) {
+      const doc = parseHTML(html);
+      const textContent = convertToMarkdown(doc.window.document.body);
+      return { ...article, textContent };
+    } else {
+      const content = cleanString(html);
+      const textContent = cleanString(article.textContent);
+
+      return { ...article, content, textContent };
+    }
   }
 };
 
-const extract = (html: string) => {
+const extractContent = (html: string) => {
   var doc = parseHTML(html);
-  let reader = new Readability(doc.window.document);
+  let reader = new Readability(doc.window.document, {
+    charThreshold: 10,
+  });
   return reader.parse();
 };
 
-const convertToMarkdown = (html: string) => {
+const convertToMarkdown = (doc: string) => {
   const turndown = new TurndownService();
-  const doc = parseHTML(html);
-  return turndown.turndown(doc.window.document);
+  return turndown.turndown(doc);
 };
 
 //

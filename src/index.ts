@@ -12,15 +12,18 @@ app.get(
     z.object({
       url: z.string().url(),
       markdown: z.union([z.literal("true"), z.literal("false")]).optional(),
+      extract: z.union([z.literal("true"), z.literal("false")]).optional(),
     })
   ),
   async (c) => {
     const url = c.req.query("url")!;
     const markdownParam = c.req.query("markdown") || "true";
     const markdown = markdownParam === "true" || markdownParam === "1";
+    const extractParam = c.req.query("extract") || "true";
+    const extract = extractParam === "true" || extractParam === "1";
     try {
-      console.log("scraping", url, markdown);
-      const page = await scrape({ url, markdown });
+      console.log("scraping", url, markdown, extract);
+      const page = await scrape({ url, markdown, extract });
       return c.json({ page });
     } catch (e) {
       if (e instanceof Error) {
